@@ -21,7 +21,7 @@ library(ggplot2)
 Now, upload the file "Class_Motivation.csv" from the Assignment 3 Repository as a data frame called "K1""
 ```{r}
 
-K1 <- read.table(...)
+K1 <- read.csv("Class_Motivation.csv")
 
 ```
 
@@ -81,7 +81,7 @@ fit <- kmeans(K3, 2)
 
 fit$cluster
 
-#We can also attach these clusters to te original dataframe by using the "data.frame" command to create a new data frame called K4.
+#We can also attach these clusters to the original dataframe by using the "data.frame" command to create a new data frame called K4.
 
 K4 <- data.frame(K3, fit$cluster)
 
@@ -104,7 +104,7 @@ K5 <- tidyr::gather(K4, "week", "motivation", 1:5)
 Now lets use dplyr to average our motivation values by week and by cluster.
 
 ```{r}
-
+library("dplyr")
 K6 <- K5 %>% group_by(week, cluster)
 K6 <- summarise(K6, avg = mean(motivation))
 
@@ -138,7 +138,8 @@ Now we can plot our line plot using the ggplot command, "ggplot()".
 - Finally we are going to clean up our axes labels: xlab("Week") & ylab("Average Motivation")
 
 ```{r}
-
+install.packages("ggplot")
+library("ggplot2")
 ggplot(K6, aes(week, avg, colour = cluster)) + geom_line() + xlab("Week") + ylab("Average Motivation")
 
 ```
@@ -149,9 +150,24 @@ It would be useful to determine how many people are in each cluster. We can do t
 
 ```{r}
 K7 <- dplyr::count(K4, cluster)
+
 ```
 
 Look at the number of people in each cluster, now repeat this process for 3 rather than 2 clusters. Which cluster grouping do you think is more informative? Write your answer below:
+```{r}
+fit2 <- kmeans(K3, 3) 
+fit2$cluster
+K4_2 <- data.frame(K3, fit2$cluster)
+names(K4_2) <- c("1", "2", "3", "4", "5", "cluster") 
+K5_2 <- tidyr::gather(K4_2, "week", "motivation", 1:5)
+K6_2 <- K5_2 %>% group_by(week, cluster)
+K6_2 <- summarise(K6_2, avg = mean(motivation))
+K6_2$week <- as.numeric(K6_2$week)
+K6_2$cluster <- as.factor(K6_2$cluster)
+ggplot(K6_2, aes(week, avg, colour = cluster)) + geom_line() + xlab("Week") + ylab("Average Motivation")
+
+```
+
 
 
 Once you have done this, save both of your plots to the Assignment 5 file. Create a Zotero item to index your new computer program (Assignment 5.rmd) in Zotero. Then commit your assignment, push it to your Github account and then Pull request your version to the original assignment version so I can see it.
@@ -159,10 +175,65 @@ Once you have done this, save both of your plots to the Assignment 5 file. Creat
 ##Part II
 
 Now, try to do the same for the data [collected in class](https://tccolumbia.qualtrics.com/SE/?SID=SV_6RRqlSAM6lZWYQt). Create two groups of clusters, the answers to the questions and regions where people grew up. 
+```{r}
+data <- read.csv("HUDK4050_2017_Cluster_Survey.csv")
+D1 <- dplyr::select(data,1:12)
+D2 <- dplyr::select(data,13:15)
+na.omit(D1)
+D1.1<-D1[,-c(1:2)]
+D1.1$cat<-ifelse(D1.1$cat=="Yes",1,0)
+D1.1$gif.jiff<-ifelse(D1.1$gif.jiff=="g-iff",1,0)
+D1.1<-scale(D1.1)
+fitD1 <- kmeans(D1.1,2)
+fitD1$cluster
+D1.1 <- data.frame(D1.1,fitD1$cluster)
+D1.1 <- tidyr::gather(D1.1, "question", "answer", 1:10)
+D1.2 <- D1.1 %>% group_by(question, fitD1.cluster) %>% summarise(avg = mean(answer))
+# i choose to plot  a rador plot for visualizasing different groups 
+library(ggplot2)
+install.packages("ggmap")
+library("ggmap")
+names(D2) <- c("City","Province","Country")
+C1 <- geocode(as.character(D2$Province),output="latlon")
+row.names(C51)<- c("2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22")
+ggplot(D1.2, aes(y = avg, x = question, 
+    group = fitD1.cluster, colour = fitD1.cluster)) + coord_polar() + geom_point() + geom_path() + labs(x = NULL)
+
+
+
+#follow the same procedure on the regions dataset
+na.omit(D2)
+D2.1 <- tidyr::unite(D2,location,city.grew, state.grew,country.grew,sep = " ", remove = TRUE)
+GNsearchAF <- function(x) {  
+  res <- GNsearch(name=x, country="CN")  
+  return(res[1, ])  
+}
+
+# loop over city names and reformat  
+GNresult <- sapply(cities, GNsearchAF)  
+GNresult <- do.call("rbind", GNresult)  
+GNresult <- cbind(city=row.names(GNresult),  
+subset(GNresult, select=c("lng", "lat", "adminName1")))  
+
+library(data.table)
+library(purrr)
+library(geonames)
+
+options(geonamesUsername = "cc4009")
+places <- c("United Stataes", "China", "Taiwan")
+get_coords <- function(name, country, fcode) {
+  res <- GNsearch(name_equals = name, country = country, fcode = fcode)  
+  out <- data.frame(name = res$toponymName, lat = res$lat, lon = res$lng)
+  return(out)  
+}
+
+```
+
 
 ##Part III
 
 Create a visualization that shows the overlap between the two groups of clusters you created in part III.
+
 
 Code Book:
 
